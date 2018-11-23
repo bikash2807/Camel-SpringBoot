@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes xmlns="http://camel.apache.org/schema/spring">
+  <!-- Define additional camel routes here 
+       classpath:camel/*.xml is automatically scanned
+  -->
+  	
+    <!-- <route id="run-once-route">
+      <from uri="restlet:http://localhost:9876/api/securing/usertest?restletMethod=GET"/>
+      	<log message="***************** Running 'run-once-route' ************"/>
+      	<setBody><simple>{{cityInfo.datasource.validation-query}}</simple></setBody>
+      	<to uri="jdbc:dataSource"/>
+      	<log message="Body from database ** ${body}"/>
+      	<marshal ref="jsonOrder"/>
+      	<setHeader headerName="Content-Type"><simple>application/json</simple></setHeader>
+		<setHeader headerName="CamelRestletResponse"><simple>${body}</simple></setHeader>
+    </route> -->
+</routes>

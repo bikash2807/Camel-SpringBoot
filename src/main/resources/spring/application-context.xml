@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:cxf="http://camel.apache.org/schema/cxf"
+	xmlns:cxfcore="http://cxf.apache.org/core"
+
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+		http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+		http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd">
+
+	<!-- Can define the camel context here. It's merged with all the RouteBuilders and camel/*.xml,camel-rest/*.xml
+		 camel.springboot.* properties are ignored if this is used
+	 -->
+	
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="${userDetail.datasource.url}" />
+		<property name="username" value="${userDetail.datasource.username}" />
+		<property name="password" value="${userDetail.datasource.password}"/>
+	</bean>
+	
+	<bean id="process" class="com.camelspringpoc.Processing"/>
+	
+	<camelContext id="camelSpringContext" xmlns="http://camel.apache.org/schema/spring" streamCache="true">
+	    <dataFormats>
+            <json id="jsonOrder" library="Jackson" useList="true"/>
+        </dataFormats>
+		
+	    <rest path="/v1" consumes="application/json" produces="application/json">
+	        <description>Get UserDetails Rest Service</description>
+			<post uri="/getUserDetails" outType="com.camelspringpoc.model.Output" type="com.camelspringpoc.model.Input">
+				<param name="body" type="body"/>
+				<responseMessage code="200" responseModel="com.camelspringpoc.model.Output" message="API response" />
+				<route id="rest-userDetail">
+			    	<to uri="bean:process?method=getData"/>
+					<log message="** Headers ${in.headers} ** Body ${body}"/>
+					<setBody><simple>{{userDetail.datasource.validation-query}} where id = '${body[id]}'</simple></setBody>
+      				<to uri="jdbc:dataSource"/>
+      				<log message="Body from database ** ${body}"/>
+      				<choice>
+      				    <when>
+      				        <simple>${body} == '[]'</simple>
+      				        	<setBody><simple>{"ResponseMsg":"No Record Found"}</simple></setBody>
+      				    </when>
+      					<otherwise>
+      					    	<log message="Body in Rest ** ${body}"/>
+      			    			<marshal ref="jsonOrder"/>
+      			    			<convertBodyTo type="java.lang.String"/>
+      					</otherwise>
+      				</choice>
+      				<removeHeaders pattern="*"/>
+      				<setHeader headerName="Content-Type"><simple>application/json</simple></setHeader>
+					<setHeader headerName="CamelRestletResponse"><simple>${body}</simple></setHeader>
+				</route>
+			</post>
+		</rest>
+	    
+	    <route id="CamelSpringTest">
+      		<from uri="restlet:http://localhost:{{camelRest.port}}/api/getUserDetails?restletMethod=POST"/>
+      		<unmarshal ref="jsonOrder"/>
+      		<setBody><simple>{{userDetail.datasource.validation-query}} where id = '${body[0][id]}'</simple></setBody>
+      		<to uri="jdbc:dataSource"/>
+      		<log message="Body from database ** ${body}"/>
+      		<choice>
+      		    <when>
+      		         <simple>${body} == '[]'</simple>
+      				 	<setBody><simple>{"ResponseMsg":"No Record Found"}</simple></setBody>
+      			</when>
+      			<otherwise>
+      			    <marshal ref="jsonOrder"/>
+      			</otherwise>
+      		</choice>
+      		<removeHeaders pattern="*"/>
+      		<setHeader headerName="Content-Type"><simple>application/json</simple></setHeader>
+			<setHeader headerName="CamelRestletResponse"><simple>${body}</simple></setHeader>
+    </route>
+	</camelContext>
+	
+</beans>
