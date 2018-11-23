@@ -7,7 +7,7 @@
     <groupId>in.goindigo.camelspringboot</groupId>
     <artifactId>modules</artifactId>
     <version>1.0</version>
-    <relativePath>../pom.xml</relativePath>
+    <relativePath>parentpom/pom.xml</relativePath>
   </parent>
 
   <!--<parent>
